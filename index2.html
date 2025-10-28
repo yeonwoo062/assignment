@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제한 시간 과제 제출 게임</title>
+    <link rel="stylesheet" href="index2.css">
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>제한 시간내에 과제를 제출하세요.</h1>
+
+        <div id="status-bar">
+            <span id="timer">남은 시간: 20.0초</span>
+            <span id="score">제출 완료: 0개</span>
+        </div>
+
+        <div id="assignments-list">
+            </div>
+
+        <div id="submission-box">
+            <h2>여기에 과제를 제출하세요!</h2>
+        </div>
+
+        <div id="result-modal" class="hidden">
+            <div id="result-content">
+                <h2>결과 발표!</h2>
+                <p id="final-score"></p>
+                <p id="grade"></p>
+                <button id="restart-button">다시 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main2.js"></script>
+</body>
+</html>
