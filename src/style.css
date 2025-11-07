@@ -1,0 +1,17 @@
+#container {
+    font-family:monospace;
+    position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+    
+}
+
+body {
+  display: flex;
+  justify-content: center;  /* 가로 가운데 */
+  align-items: center;      /* 세로 가운데 */
+  height: 100vh;            /* 화면 높이 꽉 채우기 */
+  margin: 0;
+}
