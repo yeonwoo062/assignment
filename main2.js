@@ -5,7 +5,7 @@ const PROBLEMS = [
     { id: 4, question: "100 - 33 = ?", answer: 67, submitted: false }
 ];
 
-const TIME_LIMIT = 25.0; // 제한 시간 (초)
+const TIME_LIMIT = 30.0; // 제한 시간 (초)
 
 let currentTime = TIME_LIMIT;
 let timerInterval = null;
@@ -30,6 +30,9 @@ const restartButton = document.getElementById('restart-button');
 /**
  * 게임을 시작하거나 재시작할 때 초기화합니다.
  */
+/**
+ * 게임을 시작하거나 재시작할 때 초기화합니다.
+ */
 function initGame() {
     // 변수 초기화
     currentTime = TIME_LIMIT;
@@ -37,10 +40,16 @@ function initGame() {
     PROBLEMS.forEach(p => p.submitted = false);
 
     // UI 업데이트
-    timerDisplay.textContent = `남은 시간: ${currentTime.toFixed(1)}초`;
+    timerDisplay.textContent = `체력: ${currentTime.toFixed(1)}hp`;
     scoreDisplay.textContent = `제출 완료: 0개`;
     resultModal.classList.add('hidden');
     assignmentsList.innerHTML = ''; // 문제 목록 비우기
+
+    // ✅ 추가: 힐 버튼을 다시 활성화하고 텍스트 복원
+    if (healButton) {
+        healButton.disabled = false;
+        healButton.textContent = '에너지 드링크';
+    }
     
     createAssignmentCards();
     startTimer();
@@ -50,47 +59,81 @@ function initGame() {
  * 문제 카드를 생성하고 드래그 이벤트를 설정합니다.
  */
 function createAssignmentCards() {
-    PROBLEMS.forEach(problem => {
-        const card = document.createElement('div');
-        card.classList.add('assignment-card');
-        card.setAttribute('data-id', problem.id);
-        
-        card.innerHTML = `
-            <div class="problem">${problem.question}</div>
-            <input type="text" class="answer-input" placeholder="정답 입력" data-id="${problem.id}">
-        `;
-        
-        // 정답 입력 시 이벤트 리스너
-        const input = card.querySelector('.answer-input');
-        input.addEventListener('input', (e) => checkAnswer(e.target, problem, card));
+  PROBLEMS.forEach(problem => {
+    const card = document.createElement('div');
+    card.classList.add('assignment-card');
+    card.setAttribute('data-id', problem.id);
 
-        // 드래그 시작 이벤트 (초기에는 드래그 불가)
-        card.addEventListener('dragstart', handleDragStart);
-        card.addEventListener('dragend', handleDragEnd);
+    // ✅ 변경: 드래그 속성 제거, 버튼 텍스트 '제출'로 변경
+    card.innerHTML = `
+      <div class="problem">${problem.question}</div>
+      <div class="answer-box">
+        <input type="text" class="answer-input" placeholder="정답 입력" data-id="${problem.id}">
+        <button class="submit-btn" data-id="${problem.id}" disabled>제출</button> 
+      </div>
+    `;
 
-        assignmentsList.appendChild(card);
-    });
+    const input = card.querySelector('.answer-input');
+    const submitBtn = card.querySelector('.submit-btn'); // 버튼 가져오기
+
+    // 입력 시 정답 확인
+    input.addEventListener('input', (e) => checkAnswer(e.target, problem, card));
+    
+    // ✅ 추가: 제출 버튼 클릭 이벤트 등록
+    submitBtn.addEventListener('click', () => handleSubmitClick(problem, card)); 
+
+    assignmentsList.appendChild(card);
+  });
 }
 
-/**
- * 정답을 확인하고 카드에 드래그 가능 속성을 부여합니다.
+/** // <-- (1) 주석 블록을 /** 로 정확히 시작
  * @param {HTMLInputElement} inputElement - 현재 입력 요소
  * @param {object} problem - 문제 객체
  * @param {HTMLElement} card - 문제 카드 요소
- */
+ */ // <-- (2) 주석 블록을 */ 로 정확히 닫음
 function checkAnswer(inputElement, problem, card) {
-    // 입력된 값을 숫자로 변환 (공백 제거)
-    const userAnswer = Number(inputElement.value.trim()); 
-    const isCorrect = userAnswer === problem.answer;
+  const userAnswer = Number(inputElement.value.trim());
+  const isCorrect = userAnswer === problem.answer;
 
-    if (isCorrect) {
-        // 정답일 경우: 드래그 가능하게 설정
-        card.classList.add('draggable');
-        card.setAttribute('draggable', true);
-    } else {
-        // 오답일 경우: 드래그 불가능하게 설정
-        card.classList.remove('draggable');
-        card.setAttribute('draggable', false);
+  const submitBtn = card.querySelector('.submit-btn');
+
+  if (isCorrect) {
+    // ✅ 변경: 정답 맞으면 버튼 활성화 (disabled 해제)
+    submitBtn.disabled = false;
+  } else {
+    // ✅ 변경: 오답이면 버튼 비활성화 (disabled 설정)
+    submitBtn.disabled = true;
+  }
+}
+
+/**
+ * 제출 버튼 클릭 시 과제를 제출 처리합니다.
+ * @param {object} problem - 문제 객체
+ * @param {HTMLElement} card - 문제 카드 요소
+ */
+function handleSubmitClick(problem, card) {
+    if (!problem.submitted) {
+        // 제출 처리
+        problem.submitted = true;
+        submittedCount++;
+        
+        // UI 변경: 제출된 카드의 입력 및 버튼 비활성화/제거
+        card.querySelector('.answer-input').disabled = true;
+        card.querySelector('.submit-btn').disabled = true;
+        card.querySelector('.submit-btn').textContent = '✅ 제출됨';
+        
+        // 제출된 카드의 스타일 변경 (원하는 대로 조정 가능)
+        card.style.backgroundColor = '#f0f0f0';
+        card.style.opacity = 0.7; 
+        
+        // 제출 완료 개수 업데이트
+        scoreDisplay.textContent = `제출 완료: ${submittedCount}개`;
+
+        // 모든 문제 제출 완료 시 게임 종료
+        if (submittedCount === PROBLEMS.length) {
+            clearInterval(timerInterval);
+            endGame();
+        }
     }
 }
 
@@ -119,7 +162,7 @@ function startTimer() {
             endGame();
         }
 
-        timerDisplay.textContent = `남은 시간: ${currentTime.toFixed(1)}초`;
+        timerDisplay.textContent = `체력: ${currentTime.toFixed(1)}hp`;
     }, 100); // 0.1초마다 업데이트
 }
 
@@ -242,3 +285,29 @@ restartButton.addEventListener('click', initGame);
 
 // 게임 초기화로 시작
 document.addEventListener('DOMContentLoaded', initGame);
+
+const healButton = document.getElementById('heal-button');
+console.log('healButton:', healButton);
+
+if (healButton) {
+  healButton.addEventListener('click', () => {
+    // 이미 비활성화된 경우, 함수 실행을 막음 (안전 장치)
+    if (healButton.disabled) {
+        return;
+    }
+
+    const HEAL = 5;
+    currentTime += HEAL;
+    if (currentTime > TIME_LIMIT) currentTime = TIME_LIMIT;
+    timerDisplay.textContent = `체력: ${currentTime.toFixed(1)}hp`;
+
+    // ✅ 핵심 수정: 버튼을 비활성화하여 다시 클릭할 수 없도록 함
+    healButton.disabled = true; 
+    healButton.textContent = '더 마시면 배아파!!!'; // 텍스트 변경 (선택 사항)
+
+    // 디버깅용
+    console.log('Healed! currentTime=', currentTime);
+  });
+} else {
+  console.warn('heal-button element not found. Check HTML id or script loading order.');
+}
