@@ -5,11 +5,12 @@ const PROBLEMS = [
     { id: 4, question: "100 - 33 = ?", answer: 67, submitted: false }
 ];
 
-const TIME_LIMIT = 15.0; // 제한 시간 (초)
+const TIME_LIMIT = 10.0; // 제한 시간 (초)
 
 let currentTime = TIME_LIMIT;
 let timerInterval = null;
 let submittedCount = 0;
+let problemToFailId = null;
 
 // =========================
 // 2. DOM 요소 연결
@@ -39,22 +40,18 @@ function initGame() {
     submittedCount = 0;
     PROBLEMS.forEach(p => p.submitted = false);
 
+    // ✅ 추가: 4개 문제 중 랜덤으로 하나의 ID를 선택 (1, 2, 3, 4 중 하나)
+    const randomIndex = Math.floor(Math.random() * PROBLEMS.length);
+    problemToFailId = PROBLEMS[randomIndex].id;
+    console.log(`[디버그] 이번 판의 실패 문제 ID: ${problemToFailId}`); // 디버깅용
+
     // UI 업데이트
     timerDisplay.textContent = `체력: ${currentTime.toFixed(1)}hp`;
-    scoreDisplay.textContent = `제출 완료: 0개`;
-    resultModal.classList.add('hidden');
-    assignmentsList.innerHTML = ''; // 문제 목록 비우기
-
-    // ✅ 추가: 힐 버튼을 다시 활성화하고 텍스트 복원
-    if (healButton) {
-        healButton.disabled = false;
-        healButton.textContent = '에너지 드링크';
-    }
+    // ... (나머지 코드 유지)
     
     createAssignmentCards();
     startTimer();
 }
-
 /**
  * 문제 카드를 생성하고 드래그 이벤트를 설정합니다.
  */
@@ -112,28 +109,55 @@ function checkAnswer(inputElement, problem, card) {
  * @param {HTMLElement} card - 문제 카드 요소
  */
 function handleSubmitClick(problem, card) {
-    if (!problem.submitted) {
-        // 제출 처리
-        problem.submitted = true;
-        submittedCount++;
-        
-        // UI 변경: 제출된 카드의 입력 및 버튼 비활성화/제거
-        card.querySelector('.answer-input').disabled = true;
-        card.querySelector('.submit-btn').disabled = true;
-        card.querySelector('.submit-btn').textContent = '✅ 제출완료';
-        
-        // 제출된 카드의 스타일 변경 (원하는 대로 조정 가능)
-        card.style.backgroundColor = '#f0f0f0';
-        card.style.opacity = 0.7; 
-        
-        // 제출 완료 개수 업데이트
-        scoreDisplay.textContent = `제출 완료: ${submittedCount}개`;
+    if (problem.submitted) {
+        // 이미 제출된 문제라면 로직 실행 중단 (재시작 버튼 클릭 로직은 아래에서 처리)
+        return;
+    }
 
-        // 모든 문제 제출 완료 시 게임 종료
-        if (submittedCount === PROBLEMS.length) {
-            clearInterval(timerInterval);
-            endGame();
-        }
+    const submitBtn = card.querySelector('.submit-btn');
+
+    // 1. ✅ 랜덤 실패 조건 확인
+    if (problem.id === problemToFailId) {
+        // --- 실패 로직 ---
+        
+        // 문제 객체를 '실패' 상태로 변경 (제출된 것은 아니지만, 다시 풀어야 함을 표시)
+        // problem.submitted 상태는 false로 유지하여 제출 개수에 포함되지 않도록 함
+
+        // UI 변경: 제출 버튼 비활성화 해제, 텍스트 변경, 이벤트 리스너 변경
+        submitBtn.disabled = false; // 다시 클릭 가능하게
+        submitBtn.textContent = '과제가 날라갔습니다... 다시 시작';
+        submitBtn.classList.add('fail-btn'); // CSS 스타일을 위해 클래스 추가 (선택 사항)
+        card.style.backgroundColor = '#fce3e3'; // 배경색 변경 (선택 사항)
+        
+        // 실패 처리 후에는 제출 완료 개수를 증가시키지 않습니다.
+
+        // 제출 버튼 클릭 이벤트를 '문제 초기화' 기능으로 변경
+        submitBtn.removeEventListener('click', () => handleSubmitClick(problem, card));
+        submitBtn.addEventListener('click', () => resetFailedProblem(problem, card));
+
+        return; // 일반 제출 로직 실행 중단
+    }
+
+
+    // 2. --- 일반 제출 로직 (성공) ---
+    problem.submitted = true;
+    submittedCount++;
+    
+    // UI 변경: 제출됨 처리
+    card.querySelector('.answer-input').disabled = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '✅ 제출 완료';
+    submitBtn.classList.remove('fail-btn');
+    
+    card.style.backgroundColor = '#f0f0f0';
+    card.style.opacity = 0.7; 
+    
+    scoreDisplay.textContent = `제출 완료: ${submittedCount}개`;
+
+    // 모든 문제 제출 완료 시 게임 종료
+    if (submittedCount === PROBLEMS.length) {
+        clearInterval(timerInterval);
+        endGame();
     }
 }
 
@@ -310,4 +334,31 @@ if (healButton) {
   });
 } else {
   console.warn('heal-button element not found. Check HTML id or script loading order.');
+}
+
+/**
+ * 실패한 문제를 초기화하여 다시 풀 수 있게 만듭니다.
+ * @param {object} problem - 문제 객체
+ * @param {HTMLElement} card - 문제 카드 요소
+ */
+function resetFailedProblem(problem, card) {
+    
+    const input = card.querySelector('.answer-input');
+    const submitBtn = card.querySelector('.submit-btn');
+
+    // 1. UI 및 상태 초기화
+    input.value = ''; // 입력값 비우기
+    input.disabled = false;
+    
+    submitBtn.disabled = true; // 정답 맞추기 전까지 다시 비활성화
+    submitBtn.textContent = '제출';
+    submitBtn.classList.remove('fail-btn');
+    
+    card.style.backgroundColor = ''; // 배경색 원상 복구
+    card.style.opacity = 1;
+
+    // 2. 이벤트 리스너 원상 복구
+    // 기존의 '실패 초기화' 리스너를 제거하고 '제출' 리스너로 되돌립니다.
+    submitBtn.removeEventListener('click', () => resetFailedProblem(problem, card));
+    submitBtn.addEventListener('click', () => handleSubmitClick(problem, card));
 }
