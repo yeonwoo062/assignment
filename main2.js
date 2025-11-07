@@ -5,7 +5,7 @@ const PROBLEMS = [
     { id: 4, question: "100 - 33 = ?", answer: 67, submitted: false }
 ];
 
-const TIME_LIMIT = 30.0; // 제한 시간 (초)
+const TIME_LIMIT = 15.0; // 제한 시간 (초)
 
 let currentTime = TIME_LIMIT;
 let timerInterval = null;
@@ -120,7 +120,7 @@ function handleSubmitClick(problem, card) {
         // UI 변경: 제출된 카드의 입력 및 버튼 비활성화/제거
         card.querySelector('.answer-input').disabled = true;
         card.querySelector('.submit-btn').disabled = true;
-        card.querySelector('.submit-btn').textContent = '✅ 제출됨';
+        card.querySelector('.submit-btn').textContent = '✅ 제출완료';
         
         // 제출된 카드의 스타일 변경 (원하는 대로 조정 가능)
         card.style.backgroundColor = '#f0f0f0';
